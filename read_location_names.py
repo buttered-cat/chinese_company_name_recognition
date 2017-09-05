@@ -1,7 +1,5 @@
 import re
 
-# TODO: separate location names from suffixes & correctly recognize
-
 
 def read_location_names():
     locations = []
@@ -26,6 +24,7 @@ def read_location_names():
 
     # with open('./data/location_name_data.txt', 'w', encoding='utf8') as f:
     #     for location in locations:
+    # returns unsegmented strings
     return locations, locations_with_suffix
 
 read_location_names()

@@ -1,8 +1,7 @@
 import random
-
 from read_location_names import read_location_names
 from embedding import *
-import word2vec
+import gensim
 import numpy as np
 import tensorflow as tf
 
@@ -39,15 +38,26 @@ class location_classifier():
         print('graph construction finished.')
 
     def get_data(self):
-        embedding_model = word2vec.load(embedding_model_path)
+        embedding_model = gensim.models.Word2Vec.load(embedding_model_path)
         locations, locations_with_suffix = read_location_names()
         locations += locations_with_suffix
         location_word_vec = []
         max_word_seq_len = 0
         for location in locations:
+            segmented_loc = jieba.cut(location, cut_all=False)
             word_seq = []
-            for word in jieba.cut(location, cut_all=False):
-                word_seq.append(embedding_model[word])
+            try:
+                for word in segmented_loc:
+                    # TODO: unseen location names
+                        word_seq.append(embedding_model[word])
+            except KeyError:
+                word_seq = []
+                generated_sentences = replace_locations_in_sentence(' '.join(segmented_loc), keep_sentence_structure=True)
+                embedding_model.train(generated_sentences)
+                embedding_model.save(embedding_model_path)
+                for word in segmented_loc:
+                    word_seq.append(embedding_model[word])
+
             location_word_vec.append(word_seq)
             word_seq_len = len(word_seq)
             if word_seq_len > max_word_seq_len:
@@ -58,7 +68,7 @@ class location_classifier():
         # location_labels = np.zeros([num_pos_samples])
 
         # locations = set(locations)
-        non_locations = generate_non_location_samples()
+        non_locations = replace_locations_in_sentence('', keep_sentence_structure=False)
 
         train_bucket = dict()
         test_bucket = dict()

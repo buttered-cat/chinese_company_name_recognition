@@ -1,61 +1,94 @@
-import word2vec
+import gensim
 from read_location_names import read_location_names
 import re
 import jieba
 
-embedding_model_path = './embedding_files/embedding.bin'
-word_cluster_path = './embedding_files/word-clusters.txt'
-words_path = './embedding_files/words.txt'
-sentences_path = './embedding_files/sentences.txt'
-non_location_sample_path = './embedding_files/non_location_samples.txt'
+# embedding_model_path = './embedding_files/embedding.bin'
+embedding_model_path = './embedding_files/embedding_model'
+# word_cluster_path = './embedding_files/word-clusters.txt'
+segmented_words_path = './data/segmented_words.txt'
+sentences_path = './data/raw_sentences.txt'
+# non_location_sample_path = './embedding_files/non_location_samples.txt'
+augmented_corpus_path = './data/augmented_corpus.txt'
 
-embedding_dim = 50
+embedding_dim = 20
 
 def word_segmentation():
-    s = open(sentences_path, 'r', encoding='utf-8')
-    w = open(words_path, 'w', encoding='utf-8')
-    # non_location_samples = open(non_location_sample_path, 'w', encoding='utf-8')
-    # locations, locations_with_suffix = read_location_names()
-    # location_pattern = '(' + ')|('.join(locations_with_suffix + locations) + ')'
-    # location_set = set(locations_with_suffix + locations)
+    raw_sentences = open(sentences_path, 'r', encoding='utf-8')
+    segmented_words = open(segmented_words_path, 'w', encoding='utf-8')
+    augemented_data = open(augmented_corpus_path, 'w', encoding='utf-8')
+
+    locations, locations_with_suffix = read_location_names()
+    # segment locations
+    location_list = [jieba.cut(l, cut_all=False) for l in locations_with_suffix + locations]
+
     skip_next_line = True
     # met_next = True
-    for line in s:
+    for line in raw_sentences:
         if skip_next_line:
             skip_next_line = False
             continue
         try:
             sentence = line.split()[0]
         except Exception:
-            # if met_next:
-            #     w.write('\n')
-            #     met_next = False
+            # blank line, skip next line which is company name
             skip_next_line = True
             continue
-        # met_next = True
         words = jieba.cut(sentence, cut_all=False)
-        w.write(' '.join(words))
-        # sentence = re.sub(location_pattern, '', sentence)
-        # words = list(filter(lambda w: w in location_set, words))
-        # non_location_samples.write(' '.join(words))
-        w.write('\n')
 
-def generate_non_location_samples():
-    w = open(words_path, 'r', encoding='utf-8')
-    non_location_samples = []
-    locations, locations_with_suffix = read_location_names()
-    location_set = set(locations_with_suffix + locations)
-    for line in w:
-        non_location_samples += filter(lambda w: w not in location_set, line.split())
+        # generate augmented data
+        augmented_corpus = generate_augmented_corpus_sentence(words, location_list)
+        for s in augmented_corpus:
+            # write segmented words
+            segmented_words.write(' '.join(s))
+            segmented_words.write('\n')
 
-    return non_location_samples
+def generate_augmented_corpus_sentence(word_list, location_list):
+    # , keep_sentence_structure=True):
+    # w = open(segmented_words_path, 'r', encoding='utf-8')
+    # generated_samples = []
 
+    location_set = set(location_list)
+    generated_corpus = [[w for c in word_list for w in ([c] if c not in location_set else l)] for l in location_list]
+    return generated_corpus
+
+    # resplit = False if re.search(r' ', location) is None else True
+    # empty_str = True if location == '' else False
+    #
+    # def map_cond(w):
+    #     # TODO: there's some inconsistency, here it assumes locations consist of a single word
+    #     if w in location_set:
+    #         return location
+    #     else:
+    #         return w
+    #
+    # if resplit:
+    #     line = ' '.join(map(map_cond, word_list)).split()
+    # else:
+    #     line = map(map_cond, word_list)
+    # # if keep_sentence_structure:
+    # #     generated_samples.append(filter(lambda w: w != '', line))
+    # # else:
+    # if empty_str:
+    #     generated_samples = (filter(lambda w: w != '', line))
+    # else:
+    #     generated_samples = line
+    #
+    # return generated_samples
+
+
+def generate_non_locations():
+    return
 
 def train_embedding():
-    word2vec.word2phrase(words_path, './embedding_files/phrases', verbose=True)
-    word2vec.word2vec('./embedding_files/phrases', embedding_model_path, size=embedding_dim, verbose=True)
-    word2vec.word2clusters('./embedding_files/words.txt', word_cluster_path, 100, verbose=True)
+    w = open(segmented_words_path, 'r', encoding='utf-8')
+    sentences = []
+    for line in w:
+        sentences.append(line.split())
+    embedding = gensim.models.Word2Vec(sentences, min_count=1, sg=1, size=embedding_dim, iter=5)
 
-# word_segmentation()
+    embedding.save(embedding_model_path)
+
+word_segmentation()
 # generate_non_location_samples()
 # train_embedding()
