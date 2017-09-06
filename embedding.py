@@ -102,10 +102,11 @@ def train_embedding():
     sentences = []
     for line in w:
         sentences.append(line.split())
-    embedding = gensim.models.Word2Vec(sentences, min_count=1, sg=1, size=embedding_dim, iter=5)
+    # TODO: only using ~30% of CPU time regardless of `worker`
+    embedding = gensim.models.Word2Vec(sentences, min_count=1, sg=1, size=embedding_dim, iter=5, workers=4)
 
     embedding.save(embedding_model_path)
 
-word_segmentation()
+# word_segmentation()
 # generate_non_location_samples()
-# train_embedding()
+train_embedding()
