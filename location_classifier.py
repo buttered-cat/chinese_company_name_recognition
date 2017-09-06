@@ -41,22 +41,27 @@ class location_classifier():
         embedding_model = gensim.models.Word2Vec.load(embedding_model_path)
         locations, locations_with_suffix = read_location_names()
         locations += locations_with_suffix
+
+        # shape: (num_locations, location_word_len)
         location_word_vec = []
         max_word_seq_len = 0
+        # segment all locations
         for location in locations:
             segmented_loc = jieba.cut(location, cut_all=False)
             word_seq = []
-            try:
-                for word in segmented_loc:
-                    # TODO: unseen location names
-                        word_seq.append(embedding_model[word])
-            except KeyError:
-                word_seq = []
-                generated_sentences = replace_locations_in_sentence(' '.join(segmented_loc), keep_sentence_structure=True)
-                embedding_model.train(generated_sentences)
-                embedding_model.save(embedding_model_path)
-                for word in segmented_loc:
-                    word_seq.append(embedding_model[word])
+            for word in segmented_loc:
+                word_seq.append(embedding_model[word])
+
+            # try:
+            #     for word in segmented_loc:
+            #             word_seq.append(embedding_model[word])
+            # except KeyError:
+            #     word_seq = []
+            #     generated_sentences = replace_locations_in_sentence(' '.join(segmented_loc), keep_sentence_structure=True)
+            #     embedding_model.train(generated_sentences)
+            #     embedding_model.save(embedding_model_path)
+            #     for word in segmented_loc:
+            #         word_seq.append(embedding_model[word])
 
             location_word_vec.append(word_seq)
             word_seq_len = len(word_seq)
@@ -68,7 +73,7 @@ class location_classifier():
         # location_labels = np.zeros([num_pos_samples])
 
         # locations = set(locations)
-        non_locations = replace_locations_in_sentence('', keep_sentence_structure=False)
+        non_locations = generate_non_locations(set(locations))
 
         train_bucket = dict()
         test_bucket = dict()

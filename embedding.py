@@ -36,12 +36,16 @@ def word_segmentation():
             continue
         words = jieba.cut(sentence, cut_all=False)
 
+        # write segmented words
+        segmented_words.write(' '.join(words))
+        segmented_words.write('\n')
+
         # generate augmented data
         augmented_corpus = generate_augmented_corpus_sentence(words, location_list)
         for s in augmented_corpus:
             # write segmented words
-            segmented_words.write(' '.join(s))
-            segmented_words.write('\n')
+            augemented_data.write(' '.join(s))
+            augemented_data.write('\n')
 
 def generate_augmented_corpus_sentence(word_list, location_list):
     # , keep_sentence_structure=True):
@@ -49,14 +53,17 @@ def generate_augmented_corpus_sentence(word_list, location_list):
     # generated_samples = []
 
     location_set = set(location_list)
-    generated_corpus = [[w for c in word_list for w in ([c] if c not in location_set else l)] for l in location_list]
+    generated_corpus = []
+
+    # TODO: there's some inconsistency, here it assumes locations consist of a single word
+    for l in location_list:
+        generated_corpus.append([w for c in word_list for w in ([c] if c not in location_set else l)])
     return generated_corpus
 
     # resplit = False if re.search(r' ', location) is None else True
     # empty_str = True if location == '' else False
     #
     # def map_cond(w):
-    #     # TODO: there's some inconsistency, here it assumes locations consist of a single word
     #     if w in location_set:
     #         return location
     #     else:
@@ -77,11 +84,17 @@ def generate_augmented_corpus_sentence(word_list, location_list):
     # return generated_samples
 
 
-def generate_non_locations():
-    return
+def generate_non_locations(location_set):
+    segmented_words = open(segmented_words_path, 'r', encoding='utf-8')
+    # flattened data
+    words = []
+    for line in segmented_words:
+        words += [w for w in line.split() if w not in location_set]
+
+    return words
 
 def train_embedding():
-    w = open(segmented_words_path, 'r', encoding='utf-8')
+    w = open(augmented_corpus_path, 'r', encoding='utf-8')
     sentences = []
     for line in w:
         sentences.append(line.split())
