@@ -18,9 +18,10 @@ def word_segmentation():
     segmented_words = open(segmented_words_path, 'w', encoding='utf-8')
     augemented_data = open(augmented_corpus_path, 'w', encoding='utf-8')
 
-    locations, locations_with_suffix = read_location_names()
+    # assumes that word segmentation doesn't cut locations
+    locations_with_suffix, locations_without_suffix = read_location_names()
     # segment locations
-    location_list = [jieba.cut(l, cut_all=False) for l in locations_with_suffix + locations]
+    location_list = locations_with_suffix + locations_without_suffix
 
     skip_next_line = True
     # met_next = True
@@ -34,13 +35,16 @@ def word_segmentation():
             # blank line, skip next line which is company name
             skip_next_line = True
             continue
-        words = jieba.cut(sentence, cut_all=False)
+        # words = jieba.cut(sentence, cut_all=False)
+        words = [w for w in jieba.cut(sentence, cut_all=False)]
 
         # write segmented words
         segmented_words.write(' '.join(words))
         segmented_words.write('\n')
 
         # generate augmented data
+        # stream behavior, have to reload
+        # words = jieba.cut(sentence, cut_all=False)
         augmented_corpus = generate_augmented_corpus_sentence(words, location_list)
         for s in augmented_corpus:
             # write segmented words
@@ -57,7 +61,7 @@ def generate_augmented_corpus_sentence(word_list, location_list):
 
     # TODO: there's some inconsistency, here it assumes locations consist of a single word
     for l in location_list:
-        generated_corpus.append([w for c in word_list for w in ([c] if c not in location_set else l)])
+        generated_corpus.append([w for c in word_list for w in ([c] if c not in location_set else [l])])
     return generated_corpus
 
     # resplit = False if re.search(r' ', location) is None else True
